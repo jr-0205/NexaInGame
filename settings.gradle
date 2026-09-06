@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'NexaInGame'
+include 'fabric-1.21.1', 'fabric-1.21.8', 'fabric-1.21.10'
+

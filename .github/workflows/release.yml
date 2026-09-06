@@ -1,0 +1,55 @@
+name: Build NEXA In-Game
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fabric-1.21.1, fabric-1.21.8, fabric-1.21.10]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :${{ matrix.target }}:verifiedSource --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            ${{ matrix.target }}/build/libs/*.jar
+            verified-source/*.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - shell: pwsh
+        run: ./tools/New-ReleaseManifest.ps1 -ArtifactsDirectory dist -OutputPath dist/manifest.json -ReleaseTag '${{ github.ref_name }}'
+      - run: cd dist && sha256sum *.jar > SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.jar
+            dist/*.zip
+            dist/manifest.json
+            dist/SHA256SUMS.txt

@@ -1,0 +1,66 @@
+base { archivesName = project.archive_name }
+
+repositories { mavenCentral() }
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+sourceSets {
+    main {
+        java.srcDir rootProject.file('shared/src/main/java')
+        resources.srcDir rootProject.file('shared/src/main/resources')
+    }
+}
+
+if (project.name == 'fabric-1.21.10') {
+    sourceSets.main.java.exclude(
+        'com/nexaclient/ingame/NexaInGameClient.java',
+        'com/nexaclient/ingame/ui/NexaTitleScreen.java',
+        'com/nexaclient/ingame/ui/NexaControlCenterScreen.java',
+        'com/nexaclient/ingame/ui/NexaHudEditorScreen.java'
+    )
+} else {
+    sourceSets.main.java.exclude('com/nexaclient/ingame/modern/**')
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_version', project.minecraft_version
+    inputs.property 'entrypoint_class', project.entrypoint_class
+    filesMatching('fabric.mod.json') {
+        expand(
+            version: project.version,
+            minecraft_version: project.minecraft_version,
+            entrypoint_class: project.entrypoint_class
+        )
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+}
+
+tasks.register('verifiedSource', Zip) {
+    dependsOn tasks.named('build')
+    group = 'distribution'
+    description = "Guarda únicamente las fuentes y recursos compilados para ${project.minecraft_version}."
+    archiveFileName = "nexa-ingame-${project.minecraft_version}-verified-source.zip"
+    destinationDirectory = rootProject.layout.projectDirectory.dir('verified-source')
+    from(sourceSets.main.java) { into 'src/main/java' }
+    from(sourceSets.main.resources) { into 'src/main/resources' }
+    from(project.file('gradle.properties')) { into '.' }
+    doLast {
+        logger.lifecycle("NEXA verified source: ${archiveFile.get().asFile}")
+    }
+}

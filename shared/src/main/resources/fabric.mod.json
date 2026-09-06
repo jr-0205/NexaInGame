@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "nexa_ingame",
+  "version": "${version}",
+  "name": "NEXA In-Game",
+  "description": "Cliente modular y editor HUD oficial de NEXA Client.",
+  "authors": ["NEXA Client"],
+  "contact": { "sources": "https://github.com/jr-0205/NexaInGame" },
+  "license": "All-Rights-Reserved",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["${entrypoint_class}"]
+  },
+  "mixins": ["nexa_ingame.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.17.3",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

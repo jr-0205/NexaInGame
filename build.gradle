@@ -1,0 +1,14 @@
+plugins {
+    id 'fabric-loom' version '1.11.8' apply false
+}
+
+allprojects {
+    group = 'com.nexaclient'
+    version = '1.0.0-alpha.2'
+}
+
+tasks.register('releaseCandidate') {
+    group = 'distribution'
+    description = 'Compila y empaqueta los tres targets oficiales de NEXA In-Game.'
+    dependsOn subprojects.collect { "${it.path}:verifiedSource" }
+}

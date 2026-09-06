@@ -1,0 +1,11 @@
+.gradle/
+.gradle-user/
+build/
+**/build/
+run/
+**/run/
+.idea/
+*.iml
+dist/
+tmp/
+*.hprof
