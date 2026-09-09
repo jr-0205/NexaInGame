@@ -16,13 +16,14 @@ public final class NexaUi {
     public static final int PRIMARY_SOFT = 0x334BBEFF;
     public static final int TEXT = 0xFFF5FAFF;
     public static final int TEXT_2 = 0xFFB7C8D7;
-    public static final int TEXT_3 = 0xFF7890A4;
+    public static final int TEXT_3 = 0xFF9AABB9;
     public static final int SUCCESS = 0xFF63DEAF;
     public static final int WARNING = 0xFFF0B45E;
 
     private NexaUi() { }
 
     public static void roundedRect(DrawContext context, int x, int y, int w, int h, int radius, int color) {
+        if (w <= 0 || h <= 0) return;
         int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
         context.fill(x + r, y, x + w - r, y + h, color);
         context.fill(x, y + r, x + w, y + h - r, color);
@@ -71,8 +72,10 @@ public final class NexaUi {
     }
 
     public static String abbreviate(TextRenderer text, String value, int maximumWidth) {
+        if (maximumWidth <= 0) return "";
         if (text.getWidth(value) <= maximumWidth) return value;
         String suffix = "...";
+        if (text.getWidth(suffix) > maximumWidth) return "";
         int index = value.length();
         while (index > 0 && text.getWidth(value.substring(0, index) + suffix) > maximumWidth) index--;
         return value.substring(0, index) + suffix;
@@ -80,10 +83,7 @@ public final class NexaUi {
 
     public static void backdrop(DrawContext context, int width, int height) {
         HudCompat.drawBrandBackground(context, width, height);
-        context.fillGradient(0, 0, width, height, 0x9C091E31, 0xED050A11);
-        context.fillGradient(0, 0, width, height / 3, 0x480E7DB8, 0x00000000);
-        context.fill(width * 2 / 3, 0, width, height, 0x141B6B9C);
-        context.fill(0, height * 4 / 5, width, height, 0x38020712);
+        context.fillGradient(0, 0, width, height, 0x18091624, 0x98050A11);
     }
 
     private static int brighten(int color, int amount) {

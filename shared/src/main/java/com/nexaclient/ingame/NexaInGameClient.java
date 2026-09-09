@@ -28,6 +28,7 @@ public final class NexaInGameClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        com.nexaclient.ingame.modules.ModuleAccess.initialize(MODULES);
         menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.nexa_ingame.open_menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, "category.nexa_ingame"));
         editorKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(

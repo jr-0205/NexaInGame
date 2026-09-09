@@ -27,6 +27,7 @@ public final class ModernNexaInGameClient implements ClientModInitializer {
     private static boolean titleTransition;
 
     @Override public void onInitializeClient() {
+        com.nexaclient.ingame.modules.ModuleAccess.initialize(MODULES);
         menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.nexa_ingame.open_menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
         editorKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(

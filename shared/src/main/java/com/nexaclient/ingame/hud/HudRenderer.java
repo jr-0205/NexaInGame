@@ -32,8 +32,6 @@ public final class HudRenderer {
         InputTracker.update(client);
         if (client.options.hudHidden || client.player == null) return;
 
-        if (modules.state("crosshair").enabled) renderCrosshair(context, client, modules);
-
         ModuleRegistry.MODULES.stream()
             .filter(NexaModule::editableHud)
             .filter(module -> modules.state(module).enabled)
@@ -65,6 +63,7 @@ public final class HudRenderer {
         values.put("ping", new TextWidget((client, state) -> ping(client)));
         values.put("memory", new TextWidget((client, state) -> memory()));
         values.put("clock", new TextWidget(HudRenderer::clock));
+        values.put("f3_display", new TextWidget(HudRenderer::debugDisplay));
         values.put("coordinates", new TextWidget(HudRenderer::coordinates));
         values.put("armor", new ArmorWidget());
         values.put("inventory", new InventoryWidget());
@@ -78,6 +77,19 @@ public final class HudRenderer {
         if (client.player == null || client.getNetworkHandler() == null) return "Ping --";
         PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
         return entry == null ? "Ping --" : entry.getLatency() + " ms";
+    }
+
+    private static String debugDisplay(MinecraftClient client, NexaConfig.ModuleConfig state) {
+        String header = "NEXA / " + client.getCurrentFps() + " FPS / " + ping(client);
+        if (client.player == null || client.world == null) return header + "\nXYZ 0 / 64 / 0\nSin mundo";
+        String result = header + "\n" + coordinates(client, state);
+        if (state.booleanSetting("details", true)) {
+            result += "\n" + client.world.getRegistryKey().getValue()
+                + "\n" + client.world.getBiome(client.player.getBlockPos()).getKey()
+                    .map(key -> key.getValue().toString()).orElse("Bioma desconocido")
+                + "\n" + memory();
+        }
+        return result;
     }
 
     private static String memory() {
@@ -101,7 +113,7 @@ public final class HudRenderer {
             client.player.getX(), client.player.getY(), client.player.getZ(), direction);
     }
 
-    private static void renderCrosshair(DrawContext context, MinecraftClient client, ModuleRegistry modules) {
+    public static void renderCrosshair(DrawContext context, MinecraftClient client, ModuleRegistry modules) {
         NexaConfig.ModuleConfig state = modules.state("crosshair");
         int gap = state.intSetting("gap", 3, 1, 8);
         int length = state.intSetting("length", 4, 2, 12);
@@ -135,7 +147,10 @@ public final class HudRenderer {
 
     private record TextWidget(BiFunction<MinecraftClient, NexaConfig.ModuleConfig, String> value) implements HudWidget {
         @Override public Size measure(MinecraftClient client, NexaConfig.ModuleConfig state) {
-            return new Size(Math.max(50, client.textRenderer.getWidth(value.apply(client, state)) + 12), 18);
+            String[] lines = value.apply(client, state).split("\n");
+            int maximum = 38;
+            for (String line : lines) maximum = Math.max(maximum, client.textRenderer.getWidth(line));
+            return new Size(maximum + 12, lines.length * 11 + 7);
         }
 
         @Override public void draw(DrawContext context, MinecraftClient client, ModuleRegistry modules,
@@ -143,8 +158,12 @@ public final class HudRenderer {
             String text = value.apply(client, state);
             Size size = measure(client, state);
             panel(context, modules, state, size.width, size.height, editor);
-            context.drawTextWithShadow(client.textRenderer, text, 7, 5,
-                withAlpha(0xFFF4F8FC, Math.round(state.opacity * 255)));
+            int lineY = 5;
+            for (String line : text.split("\n")) {
+                context.drawTextWithShadow(client.textRenderer, line, 7, lineY,
+                    withAlpha(0xFFF4F8FC, Math.round(state.opacity * 255)));
+                lineY += 11;
+            }
         }
     }
 
