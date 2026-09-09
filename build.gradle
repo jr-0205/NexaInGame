@@ -11,4 +11,18 @@ tasks.register('releaseCandidate') {
     group = 'distribution'
     description = 'Compila y empaqueta los tres targets oficiales de NEXA In-Game.'
     dependsOn subprojects.collect { "${it.path}:verifiedSource" }
+    doLast {
+        delete fileTree(rootProject.file('JARS')) {
+            include 'NexaInGameXGPT-*-2.0.0.jar'
+        }
+        subprojects.each { target ->
+            copy {
+                from target.layout.buildDirectory.dir('libs')
+                include '*.jar'
+                exclude '*-sources.jar'
+                into rootProject.file('JARS')
+            }
+        }
+        logger.lifecycle('NEXA V2 jars copied to JARS/')
+    }
 }
