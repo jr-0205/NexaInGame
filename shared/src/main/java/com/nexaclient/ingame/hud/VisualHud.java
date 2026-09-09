@@ -59,7 +59,7 @@ public final class VisualHud {
             var name = Team.decorateName(board.getScoreHolderTeam(entry.owner()), entry.name());
             var number = entry.formatted(objective.getNumberFormatOr(StyledNumberFormat.RED));
             int numberWidth = state.booleanSetting("scores", true) ? client.textRenderer.getWidth(number) : 0;
-            var trimmed = client.textRenderer.trimToWidth(name, logicalWidth - numberWidth - 24);
+            String trimmed = NexaUi.abbreviate(client.textRenderer, name.getString(), logicalWidth - numberWidth - 24);
             context.drawTextWithShadow(client.textRenderer, trimmed, 8, rowY, alpha(NexaUi.TEXT_2, state));
             if (numberWidth > 0) context.drawTextWithShadow(client.textRenderer, number, logicalWidth - numberWidth - 8, rowY, alpha(NexaUi.TEXT, state));
             rowY += 12;
