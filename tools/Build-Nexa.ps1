@@ -31,7 +31,12 @@ if (-not $jdk) {
 $env:JAVA_HOME = $jdk
 $env:Path = (Join-Path $jdk 'bin') + [IO.Path]::PathSeparator + $env:Path
 
-$major = & (Join-Path $jdk 'bin\java.exe') -version 2>&1 | Select-Object -First 1
+# java -version writes its version banner to STDERR by design. Invoke it through
+# cmd.exe so PowerShell 5.1 does not turn that normal STDERR output into a
+# NativeCommandError while $ErrorActionPreference is set to Stop.
+$javaExe = Join-Path $jdk 'bin\java.exe'
+$major = (& cmd.exe /d /c "`"$javaExe`" -version 2^>^&1" | Select-Object -First 1)
+if (-not $major) { $major = 'Java 21' }
 Write-Host "NEXA build runtime: $major" -ForegroundColor Cyan
 
 $tasks = [System.Collections.Generic.List[string]]::new()
