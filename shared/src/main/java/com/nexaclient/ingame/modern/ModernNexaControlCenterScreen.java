@@ -15,92 +15,76 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/** NEXA In-Game V2 module library for 1.21.10. */
 public final class ModernNexaControlCenterScreen extends Screen {
     private final Screen parent;
     private final ModuleRegistry modules;
     private final Map<NexaModule, Rect> cards = new LinkedHashMap<>();
-    private ModuleCategory category;
+    private String section = "all";
     private NexaModule selected;
-    private int scroll, railWidth, detailWidth;
+    private int scroll;
+    private int wx, wy, ww, wh, rail;
 
     public ModernNexaControlCenterScreen(Screen parent, ModuleRegistry modules) {
-        super(Text.literal("NEXA Control Center")); this.parent = parent; this.modules = modules;
+        super(Text.literal("NEXA Mods")); this.parent = parent; this.modules = modules;
     }
 
-    @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        NexaUi.backdrop(context, width, height);
-        railWidth = Math.min(190, Math.max(154, width / 5)); detailWidth = width >= 900 ? Math.min(290, width / 3) : 0;
-        drawHeader(context, mouseX, mouseY); drawNavigation(context, mouseX, mouseY); drawCatalog(context, mouseX, mouseY);
-        if (detailWidth > 0) drawDetails(context, mouseX, mouseY);
+    @Override public void render(DrawContext c, int mx, int my, float delta) {
+        NexaUi.backdrop(c, width, height);
+        ww = Math.min(1030, Math.max(650, width - 54));
+        wh = Math.min(650, Math.max(420, height - 54));
+        wx = (width - ww) / 2; wy = (height - wh) / 2; rail = Math.min(158, Math.max(132, ww / 6));
+        NexaUi.window(c, wx, wy, ww, wh);
+        drawHeader(c, mx, my); drawRail(c, mx, my); drawLibrary(c, mx, my); drawFooter(c, mx, my);
+        if (selected != null) drawInspector(c, mx, my);
     }
 
     private void drawHeader(DrawContext c, int mx, int my) {
-        c.fill(0, 0, width, 68, 0xEC081521); c.fill(0, 67, width, 68, 0x6657C8FF);
-        NexaUi.roundedRect(c, 18, 19, 30, 30, 8, NexaUi.PRIMARY); c.drawCenteredTextWithShadow(textRenderer, "N", 33, 30, 0xFF03131D);
-        c.drawTextWithShadow(textRenderer, "NEXA", 60, 26, NexaUi.TEXT); c.drawTextWithShadow(textRenderer, "CONTROL CENTER", 100, 26, NexaUi.PRIMARY);
-        NexaUi.pill(c, textRenderer, width - 188, 24, "H  EDITOR HUD", inside(mx, my, width - 194, 17, 126, 31)); NexaUi.pill(c, textRenderer, width - 60, 24, "ESC", false);
+        int h = 58; c.fill(wx, wy + h - 1, wx + ww, wy + h, NexaUi.BORDER);
+        NexaUi.roundedRect(c, wx + 17, wy + 14, 30, 30, 9, NexaUi.PRIMARY);
+        c.drawCenteredTextWithShadow(textRenderer, "N", wx + 32, wy + 25, 0xFFFFFFFF);
+        c.drawTextWithShadow(textRenderer, "NEXA", wx + 58, wy + 18, NexaUi.TEXT);
+        c.drawTextWithShadow(textRenderer, "IN-GAME", wx + 58, wy + 32, NexaUi.TEXT_3);
+        int sx = wx + ww - 232; NexaUi.search(c, textRenderer, sx, wy + 15, 174, inside(mx,my,sx,wy+15,174,28));
+        NexaUi.iconButton(c, textRenderer, wx + ww - 46, wy + 15, 28, "×", inside(mx,my,wx+ww-46,wy+15,28,28), false);
     }
 
-    private void drawNavigation(DrawContext c, int mx, int my) {
-        c.fill(0, 68, railWidth, height, 0xD8091723); NexaUi.sectionLabel(c, textRenderer, "BIBLIOTECA", 16, 86);
-        int y = 102; drawCategory(c, mx, my, y, null, "Todo"); y += 34;
-        for (ModuleCategory value : ModuleCategory.values()) { drawCategory(c, mx, my, y, value, value.label); y += 34; }
-        int profileY = height - 104; NexaUi.sectionLabel(c, textRenderer, "PERFIL ACTIVO", 16, profileY);
-        boolean hover = inside(mx, my, 12, profileY + 12, railWidth - 24, 36); NexaUi.borderedCard(c, 12, profileY + 12, railWidth - 24, 36, hover);
-        c.drawTextWithShadow(textRenderer, modules.config().activeProfile, 24, profileY + 25, NexaUi.TEXT); c.drawTextWithShadow(textRenderer, "CAMBIAR", railWidth - 70, profileY + 25, NexaUi.PRIMARY);
-        c.drawTextWithShadow(textRenderer, "Los perfiles guardan modulos y HUD por separado", 16, height - 30, NexaUi.TEXT_3);
+    private void drawRail(DrawContext c, int mx, int my) {
+        int top = wy + 58, bottom = wy + wh - 47;
+        c.fill(wx, top, wx + rail, bottom, 0xFF0D1015); c.fill(wx + rail - 1, top, wx + rail, bottom, NexaUi.BORDER);
+        NexaUi.sectionLabel(c, textRenderer, "MODS", wx + 15, top + 18);
+        int y = top + 34;
+        y = nav(c,mx,my,y,"favorites","★  Favoritos"); y = nav(c,mx,my,y,"all","Todos"); y = nav(c,mx,my,y,"hud","HUD"); y = nav(c,mx,my,y,"visual","Visual"); y = nav(c,mx,my,y,"gameplay","Gameplay"); y = nav(c,mx,my,y,"camera","Camara"); y = nav(c,mx,my,y,"other","Otros");
+        NexaUi.sectionLabel(c, textRenderer, "PERFIL", wx + 15, bottom - 62);
+        NexaUi.softPanel(c, wx + 12, bottom - 46, rail - 24, 32);
+        c.drawTextWithShadow(textRenderer, NexaUi.abbreviate(textRenderer, modules.config().activeProfile, rail - 55), wx + 22, bottom - 34, NexaUi.TEXT_2);
+        c.drawTextWithShadow(textRenderer, "›", wx + rail - 28, bottom - 34, NexaUi.TEXT_3);
     }
 
-    private void drawCategory(DrawContext c, int mx, int my, int y, ModuleCategory value, String label) {
-        boolean active = category == value, hover = inside(mx, my, 10, y, railWidth - 20, 28);
-        if (active || hover) NexaUi.roundedRect(c, 10, y, railWidth - 20, 28, 6, active ? 0x664ABEFF : 0x332A4356);
-        if (active) c.fill(10, y + 5, 13, y + 23, NexaUi.PRIMARY); c.drawTextWithShadow(textRenderer, label, 23, y + 10, active ? NexaUi.TEXT : NexaUi.TEXT_2);
+    private int nav(DrawContext c,int mx,int my,int y,String id,String label) { NexaUi.navItem(c,textRenderer,wx+10,y,rail-20,label,section.equals(id),inside(mx,my,wx+10,y,rail-20,28)); return y+31; }
+
+    private void drawLibrary(DrawContext c, int mx, int my) {
+        int left = wx + rail + 20, top = wy + 78, right = wx + ww - 20; List<NexaModule> visible = visible();
+        c.drawTextWithShadow(textRenderer, title(), left, top, NexaUi.TEXT);
+        int enabled = (int)visible.stream().filter(m -> modules.state(m).enabled).count(); c.drawTextWithShadow(textRenderer, enabled + " activos · " + visible.size() + " modulos", left, top + 15, NexaUi.TEXT_3);
+        cards.clear(); int available = right-left, gap=10, min=112; int cols=Math.max(2,Math.min(5,(available+gap)/(min+gap))); int cw=(available-gap*(cols-1))/cols, ch=100; int start=Math.min(scroll,Math.max(0,visible.size()-1));
+        for(int i=start;i<visible.size();i++){int local=i-start,x=left+(local%cols)*(cw+gap),y=top+39+(local/cols)*(ch+gap);if(y+ch>wy+wh-62)break;NexaModule m=visible.get(i);cards.put(m,new Rect(x,y,cw,ch));drawCard(c,mx,my,m,x,y,cw,ch);} if(visible.isEmpty())c.drawCenteredTextWithShadow(textRenderer,"No hay modulos en esta seccion",(left+right)/2,top+105,NexaUi.TEXT_3);
     }
 
-    private void drawCatalog(DrawContext c, int mx, int my) {
-        int x = railWidth + 22, right = width - detailWidth - 18, contentWidth = Math.max(180, right - x); List<NexaModule> visible = visible();
-        if (selected == null || !visible.contains(selected)) selected = visible.isEmpty() ? null : visible.get(0);
-        NexaUi.sectionLabel(c, textRenderer, category == null ? "MODULOS" : category.label, x, 87);
-        int enabled = (int) visible.stream().filter(module -> modules.state(module).enabled).count(); c.drawTextWithShadow(textRenderer, enabled + " ACTIVOS  /  " + visible.size() + " DISPONIBLES", x, 102, NexaUi.TEXT_3);
-        cards.clear(); int columns = contentWidth >= 520 ? 2 : 1, gap = 10, cardWidth = (contentWidth - gap * (columns - 1)) / columns, cardHeight = 78, start = Math.min(scroll, Math.max(0, visible.size() - 1));
-        for (int index = start; index < visible.size(); index++) { int local = index - start, cardX = x + (local % columns) * (cardWidth + gap), cardY = 120 + (local / columns) * (cardHeight + gap); if (cardY + cardHeight > height - 18) break; NexaModule module = visible.get(index); cards.put(module, new Rect(cardX, cardY, cardWidth, cardHeight)); drawModuleCard(c, mx, my, module, cardX, cardY, cardWidth, cardHeight); }
+    private void drawCard(DrawContext c,int mx,int my,NexaModule m,int x,int y,int w,int h) {
+        NexaConfig.ModuleConfig s=modules.state(m); boolean hover=inside(mx,my,x,y,w,h), active=m==selected; NexaUi.moduleCard(c,x,y,w,h,hover,active,s.enabled); NexaUi.moduleIcon(c,textRenderer,x+(w-34)/2,y+13,icon(m),s.enabled,hover);
+        c.drawCenteredTextWithShadow(textRenderer,NexaUi.abbreviate(textRenderer,m.name(),w-16),x+w/2,y+55,NexaUi.TEXT); c.drawCenteredTextWithShadow(textRenderer,s.enabled?"ENABLED":m.implemented()?"DISABLED":"COMING SOON",x+w/2,y+72,m.implemented()?(s.enabled?NexaUi.PRIMARY:NexaUi.TEXT_3):NexaUi.WARNING); c.drawTextWithShadow(textRenderer,isFavorite(s)?"★":"☆",x+8,y+8,isFavorite(s)?NexaUi.PRIMARY:NexaUi.TEXT_3); if(hover)c.drawTextWithShadow(textRenderer,"⚙",x+w-18,y+8,NexaUi.TEXT_2);
     }
 
-    private void drawModuleCard(DrawContext c, int mx, int my, NexaModule module, int x, int y, int w, int h) {
-        boolean hover = inside(mx, my, x, y, w, h), active = module == selected; NexaUi.borderedCard(c, x, y, w, h, hover || active); if (active) c.fill(x, y + 10, x + 3, y + h - 10, NexaUi.PRIMARY);
-        NexaConfig.ModuleConfig state = modules.state(module); NexaUi.roundedRect(c, x + 13, y + 13, 28, 28, 8, module.implemented() ? 0x443EC7FF : 0x443F5360);
-        c.drawCenteredTextWithShadow(textRenderer, module.name().substring(0, 1).toUpperCase(), x + 27, y + 23, module.implemented() ? NexaUi.PRIMARY : NexaUi.TEXT_3);
-        c.drawTextWithShadow(textRenderer, NexaUi.abbreviate(textRenderer, module.name(), w - 112), x + 51, y + 15, NexaUi.TEXT); c.drawTextWithShadow(textRenderer, NexaUi.abbreviate(textRenderer, module.description(), w - 70), x + 51, y + 31, NexaUi.TEXT_3);
-        String status = module.implemented() ? ModuleSettings.summary(module, state) : "PROXIMAMENTE"; c.drawTextWithShadow(textRenderer, NexaUi.abbreviate(textRenderer, status, w - 72), x + 13, y + 58, module.implemented() ? NexaUi.TEXT_2 : NexaUi.WARNING);
-        int toggleX = x + w - 47; NexaUi.toggle(c, toggleX, y + 15, state.enabled, module.implemented(), inside(mx, my, toggleX, y + 15, 34, 18));
-    }
+    private void drawFooter(DrawContext c,int mx,int my) { int y=wy+wh-47;c.fill(wx,y,wx+ww,y+1,NexaUi.BORDER);int bx=wx+16;NexaUi.button(c,textRenderer,bx,y+9,114,28,"HUD EDITOR",inside(mx,my,bx,y+9,114,28),true);c.drawTextWithShadow(textRenderer,"NEXA UI V2",wx+ww-76,y+19,NexaUi.TEXT_3); }
 
-    private void drawDetails(DrawContext c, int mx, int my) {
-        int x = width - detailWidth; c.fill(x, 68, width, height, 0xD9091723); NexaUi.sectionLabel(c, textRenderer, "CONFIGURACION", x + 18, 87); if (selected == null) return;
-        NexaConfig.ModuleConfig state = modules.state(selected); NexaUi.panel(c, x + 14, 103, detailWidth - 28, 256); c.drawTextWithShadow(textRenderer, selected.name(), x + 28, 122, NexaUi.TEXT); c.drawTextWithShadow(textRenderer, NexaUi.abbreviate(textRenderer, selected.description(), detailWidth - 56), x + 28, 140, NexaUi.TEXT_3);
-        NexaUi.pill(c, textRenderer, x + 28, 162, selected.implemented() ? "LISTO PARA USAR" : "EN DESARROLLO", selected.implemented()); NexaUi.sectionLabel(c, textRenderer, "ESTADO", x + 28, 198);
-        boolean toggleHover = inside(mx, my, x + 28, 210, detailWidth - 56, 34); NexaUi.borderedCard(c, x + 28, 210, detailWidth - 56, 34, toggleHover); c.drawTextWithShadow(textRenderer, state.enabled ? "ACTIVADO" : "DESACTIVADO", x + 40, 223, state.enabled ? NexaUi.SUCCESS : NexaUi.TEXT_2); NexaUi.toggle(c, x + detailWidth - 76, 218, state.enabled, selected.implemented(), toggleHover);
-        NexaUi.sectionLabel(c, textRenderer, "AJUSTE RAPIDO", x + 28, 261); boolean settingHover = inside(mx, my, x + 28, 273, detailWidth - 56, 34); NexaUi.button(c, textRenderer, x + 28, 273, detailWidth - 56, 34, ModuleSettings.summary(selected, state), settingHover, false);
-        if (selected.editableHud()) { boolean editorHover = inside(mx, my, x + 28, 320, detailWidth - 56, 28); NexaUi.button(c, textRenderer, x + 28, 320, detailWidth - 56, 28, "ABRIR EDITOR HUD", editorHover, true); }
-        c.drawTextWithShadow(textRenderer, "Selecciona una tarjeta para ver sus opciones.", x + 18, height - 28, NexaUi.TEXT_3);
+    private void drawInspector(DrawContext c,int mx,int my) {
+        int iw=Math.min(250,ww/3),ix=wx+ww-iw-10,iy=wy+68,ih=wh-126; NexaUi.panel(c,ix,iy,iw,ih); NexaConfig.ModuleConfig s=modules.state(selected); c.drawTextWithShadow(textRenderer,selected.name(),ix+16,iy+17,NexaUi.TEXT); c.drawTextWithShadow(textRenderer,NexaUi.abbreviate(textRenderer,selected.description(),iw-32),ix+16,iy+34,NexaUi.TEXT_3); NexaUi.iconButton(c,textRenderer,ix+iw-32,iy+10,22,"×",inside(mx,my,ix+iw-32,iy+10,22,22),false); NexaUi.divider(c,ix+14,iy+54,iw-28); c.drawTextWithShadow(textRenderer,"Estado",ix+16,iy+72,NexaUi.TEXT_2); NexaUi.toggle(c,ix+iw-52,iy+66,s.enabled,selected.implemented(),inside(mx,my,ix+iw-52,iy+66,34,18)); NexaUi.sectionLabel(c,textRenderer,"AJUSTE",ix+16,iy+106); NexaUi.softPanel(c,ix+14,iy+120,iw-28,38); c.drawTextWithShadow(textRenderer,ModuleSettings.summary(selected,s),ix+26,iy+134,NexaUi.TEXT_2); NexaUi.button(c,textRenderer,ix+14,iy+170,iw-28,30,"SIGUIENTE OPCION",inside(mx,my,ix+14,iy+170,iw-28,30),false); if(selected.editableHud())NexaUi.button(c,textRenderer,ix+14,iy+210,iw-28,30,"EDITAR EN HUD",inside(mx,my,ix+14,iy+210,iw-28,30),true); c.drawTextWithShadow(textRenderer,isFavorite(s)?"★ Favorito":"☆ Agregar a favoritos",ix+16,iy+ih-24,isFavorite(s)?NexaUi.PRIMARY:NexaUi.TEXT_3);
     }
 
     @Override public boolean mouseClicked(Click click, boolean doubled) {
-        if (click.button() != 0) return super.mouseClicked(click, doubled); double mx = click.x(), my = click.y();
-        if (inside(mx, my, width - 194, 17, 126, 31)) { if (client != null) client.setScreen(new ModernNexaHudEditorScreen(this, modules)); return true; }
-        int categoryY = 102; if (inside(mx, my, 10, categoryY, railWidth - 20, 28)) { category = null; scroll = 0; return true; } categoryY += 34;
-        for (ModuleCategory value : ModuleCategory.values()) { if (inside(mx, my, 10, categoryY, railWidth - 20, 28)) { category = value; scroll = 0; return true; } categoryY += 34; }
-        int profileY = height - 92; if (inside(mx, my, 12, profileY, railWidth - 24, 36)) { modules.config().nextBuiltInProfile(); modules.save(); return true; }
-        if (detailWidth > 0 && selected != null) { int x = width - detailWidth; if (inside(mx, my, x + 28, 210, detailWidth - 56, 34)) return toggleSelected(); if (inside(mx, my, x + 28, 273, detailWidth - 56, 34)) { ModuleSettings.cycle(selected, modules.state(selected)); modules.save(); return true; } if (selected.editableHud() && inside(mx, my, x + 28, 320, detailWidth - 56, 28)) { if (client != null) client.setScreen(new ModernNexaHudEditorScreen(this, modules)); return true; } }
-        for (Map.Entry<NexaModule, Rect> entry : cards.entrySet()) { Rect rect = entry.getValue(); if (!rect.contains(mx, my)) continue; selected = entry.getKey(); if (inside(mx, my, rect.x + rect.w - 47, rect.y + 15, 34, 18)) return toggleSelected(); return true; }
-        return super.mouseClicked(click, doubled);
+        if(click.button()!=0)return super.mouseClicked(click,doubled);double mx=click.x(),my=click.y(); if(inside(mx,my,wx+ww-46,wy+15,28,28)){close();return true;} int top=wy+58,y=top+34;String[] ids={"favorites","all","hud","visual","gameplay","camera","other"};for(String id:ids){if(inside(mx,my,wx+10,y,rail-20,28)){section=id;scroll=0;selected=null;return true;}y+=31;}int profileBottom=wy+wh-47;if(inside(mx,my,wx+12,profileBottom-46,rail-24,32)){modules.config().nextBuiltInProfile();modules.save();return true;}if(inside(mx,my,wx+16,wy+wh-38,114,28)){if(client!=null)client.setScreen(new ModernNexaHudEditorScreen(this,modules));return true;}if(selected!=null){int iw=Math.min(250,ww/3),ix=wx+ww-iw-10,iy=wy+68,ih=wh-126;if(inside(mx,my,ix+iw-32,iy+10,22,22)){selected=null;return true;}if(inside(mx,my,ix+iw-52,iy+66,34,18))return toggle();if(inside(mx,my,ix+14,iy+170,iw-28,30)){ModuleSettings.cycle(selected,modules.state(selected));modules.save();return true;}if(selected.editableHud()&&inside(mx,my,ix+14,iy+210,iw-28,30)){if(client!=null)client.setScreen(new ModernNexaHudEditorScreen(this,modules));return true;}if(inside(mx,my,ix+14,iy+ih-38,iw-28,34)){favorite(selected);return true;}}for(var e:cards.entrySet()){Rect r=e.getValue();if(!r.contains(mx,my))continue;selected=e.getKey();if(inside(mx,my,r.x,r.y,25,25)){favorite(selected);return true;}if(inside(mx,my,r.x,r.y+r.h-30,r.w,30))return toggle();return true;}return super.mouseClicked(click,doubled);
     }
 
-    private boolean toggleSelected() { if (selected == null || !selected.implemented()) return true; NexaConfig.ModuleConfig state = modules.state(selected); state.enabled = !state.enabled; modules.save(); return true; }
-    @Override public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) { scroll = Math.max(0, Math.min(Math.max(0, visible().size() - 1), scroll + (vertical < 0 ? 1 : -1))); return true; }
-    private List<NexaModule> visible() { return ModuleRegistry.MODULES.stream().filter(module -> category == null || module.category() == category).toList(); }
-    private static boolean inside(double mx, double my, int x, int y, int w, int h) { return mx >= x && mx < x + w && my >= y && my < y + h; }
-    private record Rect(int x, int y, int w, int h) { boolean contains(double mx, double my) { return inside(mx, my, x, y, w, h); } }
-    @Override public void close() { modules.save(); if (client != null) client.setScreen(parent); }
-    @Override public boolean shouldPause() { return false; }
+    private boolean toggle(){if(selected==null||!selected.implemented())return true;var s=modules.state(selected);s.enabled=!s.enabled;modules.save();return true;} private void favorite(NexaModule m){var s=modules.state(m);s.settings.put("favorite",Boolean.toString(!isFavorite(s)));modules.save();} private static boolean isFavorite(NexaConfig.ModuleConfig s){return s.booleanSetting("favorite",false);} @Override public boolean mouseScrolled(double mx,double my,double h,double v){int max=Math.max(0,visible().size()-1);scroll=Math.max(0,Math.min(max,scroll+(v<0?1:-1)));return true;} private List<NexaModule> visible(){return ModuleRegistry.MODULES.stream().filter(this::matches).toList();} private boolean matches(NexaModule m){return switch(section){case"favorites"->isFavorite(modules.state(m));case"hud"->m.category()==ModuleCategory.HUD;case"visual"->m.category()==ModuleCategory.VISUAL;case"gameplay"->m.category()==ModuleCategory.GAMEPLAY;case"camera"->m.category()==ModuleCategory.CAMERA;case"other"->m.category()==ModuleCategory.WORLD||m.category()==ModuleCategory.UTILITY||m.category()==ModuleCategory.PERFORMANCE;default->true;};} private String title(){return switch(section){case"favorites"->"Favoritos";case"hud"->"HUD";case"visual"->"Visual";case"gameplay"->"Gameplay";case"camera"->"Camara";case"other"->"Otros";default->"Todos los mods";};} private static String icon(NexaModule m){return switch(m.id()){case"fps"->"F";case"ping"->"P";case"memory"->"M";case"clock"->"C";case"coordinates"->"XYZ";case"armor"->"A";case"inventory"->"I";case"keystrokes"->"W";case"cps"->"CPS";case"crosshair"->"+";case"zoom"->"Z";case"perspective"->"360";case"freecam"->"FC";case"fov_changer"->"FOV";default->m.name().substring(0,Math.min(2,m.name().length())).toUpperCase();};} private static boolean inside(double mx,double my,int x,int y,int w,int h){return mx>=x&&mx<x+w&&my>=y&&my<y+h;} private record Rect(int x,int y,int w,int h){boolean contains(double mx,double my){return inside(mx,my,x,y,w,h);}} @Override public void close(){modules.save();if(client!=null)client.setScreen(parent);} @Override public boolean shouldPause(){return false;}
 }
