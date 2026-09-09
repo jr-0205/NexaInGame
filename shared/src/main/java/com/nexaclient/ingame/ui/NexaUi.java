@@ -4,21 +4,23 @@ import com.nexaclient.ingame.compat.HudCompat;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 
-/** Reusable visual language for the NEXA menu shell. */
+/** Shared premium-client visual language for all supported Minecraft targets. */
 public final class NexaUi {
-    public static final int SURFACE_0 = 0xFF061019;
-    public static final int SURFACE_1 = 0xEE0B1724;
-    public static final int SURFACE_2 = 0xF0122232;
-    public static final int SURFACE_3 = 0xF01A3044;
-    public static final int BORDER = 0x443C607A;
-    public static final int BORDER_HOVER = 0xCC63C6FF;
-    public static final int PRIMARY = 0xFF52C7FF;
-    public static final int PRIMARY_SOFT = 0x334BBEFF;
-    public static final int TEXT = 0xFFF5FAFF;
-    public static final int TEXT_2 = 0xFFB7C8D7;
-    public static final int TEXT_3 = 0xFF9AABB9;
-    public static final int SUCCESS = 0xFF63DEAF;
-    public static final int WARNING = 0xFFF0B45E;
+    public static final int SURFACE_0 = 0xFF090B0F;
+    public static final int SURFACE_1 = 0xF010141A;
+    public static final int SURFACE_2 = 0xF0151A22;
+    public static final int SURFACE_3 = 0xF01B222C;
+    public static final int BORDER = 0xFF252C37;
+    public static final int BORDER_HOVER = 0xFF3C4655;
+    public static final int PRIMARY = 0xFF438BFF;
+    public static final int PRIMARY_HOVER = 0xFF639FFF;
+    public static final int PRIMARY_SOFT = 0x33438BFF;
+    public static final int TEXT = 0xFFF5F7FA;
+    public static final int TEXT_2 = 0xFFA5ADB8;
+    public static final int TEXT_3 = 0xFF68717D;
+    public static final int SUCCESS = 0xFF37C978;
+    public static final int WARNING = 0xFFF5B94C;
+    public static final int DANGER = 0xFFE45162;
 
     private NexaUi() { }
 
@@ -35,44 +37,66 @@ public final class NexaUi {
     }
 
     public static void panel(DrawContext context, int x, int y, int w, int h) {
-        roundedRect(context, x, y, w, h, 10, 0xA81A2C3C);
-        roundedRect(context, x + 1, y + 1, w - 2, h - 2, 9, SURFACE_1);
+        roundedRect(context, x + 2, y + 3, w, h, 11, 0x44000000);
+        roundedRect(context, x, y, w, h, 11, BORDER);
+        roundedRect(context, x + 1, y + 1, w - 2, h - 2, 10, SURFACE_1);
     }
 
     public static void borderedCard(DrawContext context, int x, int y, int w, int h, boolean hover) {
-        roundedRect(context, x, y, w, h, 9, hover ? BORDER_HOVER : BORDER);
-        roundedRect(context, x + 1, y + 1, w - 2, h - 2, 8, hover ? SURFACE_3 : SURFACE_2);
+        roundedRect(context, x, y, w, h, 10, hover ? BORDER_HOVER : BORDER);
+        roundedRect(context, x + 1, y + 1, w - 2, h - 2, 9, hover ? SURFACE_3 : SURFACE_2);
+    }
+
+    public static void moduleCard(DrawContext context, int x, int y, int w, int h,
+                                  boolean hover, boolean selected, boolean enabled) {
+        int border = selected ? PRIMARY : hover ? BORDER_HOVER : BORDER;
+        int fill = selected ? 0xF0182432 : hover ? SURFACE_3 : SURFACE_2;
+        roundedRect(context, x, y, w, h, 10, border);
+        roundedRect(context, x + 1, y + 1, w - 2, h - 2, 9, fill);
+        if (enabled) roundedRect(context, x + 1, y + h - 5, w - 2, 4, 2, PRIMARY);
     }
 
     public static void button(DrawContext context, TextRenderer text, int x, int y, int w, int h,
                               String label, boolean hover, boolean primary) {
-        int border = primary ? (hover ? 0xFFFFFFFF : PRIMARY) : (hover ? BORDER_HOVER : BORDER);
-        int fill = primary ? (hover ? 0xFF77D3FF : 0xFF329ED7) : (hover ? SURFACE_3 : SURFACE_2);
+        int border = primary ? (hover ? PRIMARY_HOVER : PRIMARY) : (hover ? BORDER_HOVER : BORDER);
+        int fill = primary ? (hover ? PRIMARY_HOVER : PRIMARY) : (hover ? SURFACE_3 : SURFACE_2);
         roundedRect(context, x, y, w, h, 7, border);
         roundedRect(context, x + 1, y + 1, w - 2, h - 2, 6, fill);
         context.drawCenteredTextWithShadow(text, label, x + w / 2, y + (h - 8) / 2,
-            primary ? 0xFF03131D : TEXT);
+            primary ? 0xFFFFFFFF : TEXT);
     }
 
     public static void toggle(DrawContext context, int x, int y, boolean enabled, boolean available, boolean hover) {
-        int track = !available ? 0xFF45515C : enabled ? PRIMARY : 0xFF354858;
-        roundedRect(context, x, y, 34, 18, 9, hover ? brighten(track, 18) : track);
+        int track = !available ? 0xFF303640 : enabled ? PRIMARY : 0xFF323944;
+        if (hover && available) track = enabled ? PRIMARY_HOVER : 0xFF414B58;
+        roundedRect(context, x, y, 36, 20, 10, track);
         int knobX = enabled ? x + 18 : x + 2;
-        roundedRect(context, knobX, y + 2, 14, 14, 7, available ? 0xFFF5FAFF : 0xFF9CAAB5);
+        roundedRect(context, knobX, y + 2, 16, 16, 8, available ? 0xFFF5F7FA : 0xFF7A828D);
     }
 
     public static void pill(DrawContext context, TextRenderer text, int x, int y, String label, boolean active) {
         int w = text.getWidth(label) + 16;
-        roundedRect(context, x, y, w, 20, 10, active ? PRIMARY_SOFT : 0x55233546);
+        roundedRect(context, x, y, w, 20, 10, active ? PRIMARY_SOFT : 0x55252C37);
         context.drawTextWithShadow(text, label, x + 8, y + 6, active ? PRIMARY : TEXT_2);
+    }
+
+    public static void navItem(DrawContext context, TextRenderer text, int x, int y, int w,
+                               String label, boolean active, boolean hover) {
+        if (active || hover) roundedRect(context, x, y, w, 28, 7, active ? PRIMARY_SOFT : 0x551B222C);
+        if (active) roundedRect(context, x, y + 6, 3, 16, 1, PRIMARY);
+        context.drawTextWithShadow(text, label, x + 14, y + 10, active ? TEXT : TEXT_2);
     }
 
     public static void sectionLabel(DrawContext context, TextRenderer text, String label, int x, int y) {
         context.drawTextWithShadow(text, label.toUpperCase(), x, y, TEXT_3);
     }
 
+    public static void divider(DrawContext context, int x, int y, int w) {
+        context.fill(x, y, x + w, y + 1, BORDER);
+    }
+
     public static String abbreviate(TextRenderer text, String value, int maximumWidth) {
-        if (maximumWidth <= 0) return "";
+        if (value == null || maximumWidth <= 0) return "";
         if (text.getWidth(value) <= maximumWidth) return value;
         String suffix = "...";
         if (text.getWidth(suffix) > maximumWidth) return "";
@@ -83,15 +107,7 @@ public final class NexaUi {
 
     public static void backdrop(DrawContext context, int width, int height) {
         HudCompat.drawBrandBackground(context, width, height);
-        context.fillGradient(0, 0, width, height, 0x18091624, 0x98050A11);
-    }
-
-    private static int brighten(int color, int amount) {
-        int a = color >>> 24;
-        int r = Math.min(255, ((color >>> 16) & 255) + amount);
-        int g = Math.min(255, ((color >>> 8) & 255) + amount);
-        int b = Math.min(255, (color & 255) + amount);
-        return (a << 24) | (r << 16) | (g << 8) | b;
+        context.fillGradient(0, 0, width, height, 0x66000000, 0xD0080A0E);
     }
 
     private static int cornerInset(int radius, int row) {
